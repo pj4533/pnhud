@@ -16,6 +16,9 @@ class Player: NSObject, Codable {
     var name: String?
     var status: Status?
     
+    var updatedCurrentHandSeen = false
+    var updatedCurrentHandPlayed = false
+    
     var handsSeen: Int = 0
     var handsPlayed: Int = 0
     
