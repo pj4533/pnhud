@@ -9,7 +9,7 @@ import Foundation
 
 class Player: NSObject, Codable {
     enum Status : String, Codable {
-        case inGame, watching
+        case inGame, watching, quiting, requestedGameIngress, waitingNextGameToEnter, standingUp
     }
     
     var id: String?

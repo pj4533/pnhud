@@ -10,11 +10,11 @@ import SocketIO
 
 class GameConnection: NSObject {
 
+    var debug: Bool = false
     var manager: SocketManager?
     var connected: Bool = false
     
     var players: [Player] = []
-    var currentStateJSON: [String:Any] = [:]
     
     var showedResults = false
     
@@ -73,67 +73,110 @@ class GameConnection: NSObject {
                     let decoder = JSONDecoder()
                     let state = try decoder.decode([GameState].self, from: data)
 
-                    self.players = state.first?.players?.values.filter({$0.status == .inGame}) ?? []
-                    print("In Game Players (FROM RUP): ")
-                    print(state.first?.players?.values.filter({$0.status == .inGame}).map({"\($0.id ?? "") : \($0.name ?? "")"}) ?? [])
+                    self.players = state.first?.players?.map({$0.value}) ?? []
+                    if self.debug {
+                        print("In Game Players (FROM RUP): ")
+                        print(state.first?.players?.values.filter({$0.status == .inGame}).map({"\($0.id ?? "") : \($0.name ?? "")"}) ?? [])
+                    }
                 } catch let error {
-                    print(error)
+                    if self.debug {
+                        print(error)
+                    }
                 }
             })
 
             socket?.on("gC", callback: { (newStateArray, ack) in
                 if let json = newStateArray.first as? [String:Any] {
-                    self.currentStateJSON.merge(json) {(_, new) in new}
-
-                    // save raw json
-                    // run diff on previous to update
-                    // recreate current state
                     do {
-                        let data = try JSONSerialization.data(withJSONObject: self.currentStateJSON, options: [])
+                        let data = try JSONSerialization.data(withJSONObject: json, options: [])
                         let decoder = JSONDecoder()
                         let state = try decoder.decode(GameState.self, from: data)
                         
-                        if let _ = state.gT {
-                            if let tb = json["tB"] as? [String:Any] {
-                                for key in tb.keys {
-                                    if let player = self.players.filter({$0.id == key}).first {
-                                        if !player.updatedCurrentHandSeen {
-                                            self.showedResults = false
-                                            player.handsSeen = player.handsSeen + 1
-                                            player.updatedCurrentHandSeen = true
-                                        }
+                        if state.players != nil {
+                            for playerId in state.players?.map({$0.key}) ?? [] {
+                                if let player = state.players?[playerId] {
+                                    if player.status == .requestedGameIngress {
+                                        print("**** ADDING PLAYER:   \(player.name ?? "error")")
+                                        player.id = playerId
+                                        self.players.append(player)
                                     }
-                                }
-                                if let moneyAmount = Int("\(tb.values.first ?? "")"), tb.keys.count == 1 {
-//                                    print("\(tb.keys.first ?? "error") voluntarily put money in the pot (\(moneyAmount))")
-                                    if let player = self.players.filter({$0.id == tb.keys.first}).first {
-                                        if !player.updatedCurrentHandPlayed {
-                                            player.handsPlayed = player.handsPlayed + 1
-                                            player.updatedCurrentHandPlayed = true
-                                        }
+                                    if player.status == .quiting {
+                                        print("**** QUITING PLAYER:   \(playerId)")
+                                        self.players.removeAll(where: {$0.id == playerId})
                                     }
                                 }
                             }
                         }
-
-                        
-                        if state.gT == "gameResult" {
-                            if !self.showedResults {
-                                print("END OF HAND")
-                                for player in self.players {
-                                    player.updatedCurrentHandPlayed = false
-                                    player.updatedCurrentHandSeen = false
-                                    if player.handsSeen > 0 {
-                                        print("\(player.name ?? "error")  \(player.handsPlayed) / \(player.handsSeen)   VPIP: \(Int((Double(player.handsPlayed) / Double(player.handsSeen)) * 100.0))%")
-                                    }
-                                }
-                                self.showedResults = true
-                            }
-                        }
-                        
                     } catch let error {
-//                        print(error)
-//                        print("ERROR JSON: \(json)")
+                        if self.debug {
+                            print(error)
+                        }
+                    }
+
+                    
+                    if let tb = json["tB"] as? [String:Any] {
+                        for key in tb.keys {
+                            if let player = self.players.filter({$0.id == key}).first {
+                                if !player.updatedCurrentHandSeen {
+                                    if self.debug {
+                                        print("-> \(player.name ?? "error") saw hand.")
+                                    }
+                                    self.showedResults = false
+                                    player.handsSeen = player.handsSeen + 1
+                                    player.updatedCurrentHandSeen = true
+                                }
+                            }
+                        }
+                        if let _ = Int("\(tb.values.first ?? "")"), tb.keys.count == 1 {
+                            if let player = self.players.filter({$0.id == tb.keys.first}).first {
+                                if !player.updatedCurrentHandPlayed {
+                                    if self.debug {
+                                        print("-> \(player.name ?? "error") played hand.")
+                                    }
+                                    player.handsPlayed = player.handsPlayed + 1
+                                    player.updatedCurrentHandPlayed = true
+                                }
+                            }
+                        }
+                    } else if let pgs = json["pGS"] as? [String:Any] {
+                        for key in pgs.keys {
+                            if let player = self.players.filter({$0.id == key}).first {
+                                if !player.updatedCurrentHandSeen {
+                                    if self.debug {
+                                        print("-> \(player.name ?? "error") saw hand.")
+                                    }
+                                    self.showedResults = false
+                                    player.handsSeen = player.handsSeen + 1
+                                    player.updatedCurrentHandSeen = true
+                                }
+                            }
+                        }
+                    }
+
+                    
+                    if (json["gT"] as? String) == "gameResult" {
+                        if !self.showedResults {
+                            print("******************** END OF HAND ******************")
+                            for player in self.players {
+                                player.updatedCurrentHandPlayed = false
+                                player.updatedCurrentHandSeen = false
+                                if player.handsSeen > 0 {
+                                    var playerType = ""
+                                    let vpip = Int((Double(player.handsPlayed) / Double(player.handsSeen)) * 100.0)
+                                    
+                                    if player.handsSeen > 20 {
+                                        if vpip > 40 { playerType = "🐠" }
+                                        else if vpip >= 20 { playerType = "🎢⚔️" }
+                                        else if vpip >= 12 { playerType = "🔥⚔️" }
+                                        else if vpip < 12 { playerType = "🧗‍♀️" }
+                                    }
+                                    
+                                    print("\(player.name ?? "error")\(playerType)\t\tVPIP: \(vpip)% (\(player.handsPlayed)/\(player.handsSeen))")
+                                }
+                            }
+                            print("****************************************************")
+                            self.showedResults = true
+                        }
                     }
                 }
             })
