@@ -50,12 +50,6 @@
             ReferencedContainer = "container:PokerNowHud.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "VwDZMAUa97_q2KrfbwZASIB_Z"
-            isEnabled = "YES">
-         </CommandLineArgument>
-      </CommandLineArguments>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

@@ -14,7 +14,7 @@ struct PokerNowHud: ParsableCommand {
 
 		    // // explicitly exit the program after response is handled
 		    // exit(EXIT_SUCCESS)
-        let game = GameConnection(gameId: self.gameId)
+        let _ = GameConnection(gameId: self.gameId)
         
         
 		// Run GCD main dispatcher, this function never returns, call exit() elsewhere to quit the program or it will hang

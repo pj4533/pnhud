@@ -7,6 +7,7 @@
 
 import Foundation
 import SocketIO
+import SwiftCSV
 
 class GameConnection: NSObject {
 
@@ -15,12 +16,32 @@ class GameConnection: NSObject {
     var connected: Bool = false
     
     var players: [Player] = []
+
+    var loadedStats: [String:[String:Int]] = [:]
     
     var showedResults = false
     
     init(gameId: String) {
         super.init()
 
+        print("Reading stat file...")
+        do {
+            let csvFile: CSV = try CSV(url: URL(fileURLWithPath: "vpip_pfr.csv"))
+            for row in csvFile.namedRows.reversed() {
+                if let player = row["Player"], let hands = Int(row["Hands"] ?? ""), let countVPIP = Int(row["Count VPIP"] ?? ""), let countPFR = Int(row["Count PFR"] ?? "") {
+                    self.loadedStats[player] = [
+                        "hands" : hands,
+                        "countVPIP" : countVPIP,
+                        "countPFR" : countPFR
+                    ]
+                }
+            }
+        } catch let parseError as CSVParseError {
+            print(parseError)
+        } catch {
+            print("Error loading file")
+        }
+        
         let group = DispatchGroup()
         
         print("Connecting to: \(gameId)...")
@@ -74,6 +95,14 @@ class GameConnection: NSObject {
                     let state = try decoder.decode([GameState].self, from: data)
 
                     self.players = state.first?.players?.map({$0.value}) ?? []
+                    for player in self.players {
+                        if let previousStats = self.loadedStats[player.name ?? ""] {
+                            print("\tfound previous stats on player: \(player.name ?? "error")")
+                            player.handsSeen = player.handsSeen + (previousStats["hands"] ?? 0)
+                            player.handsPlayed = player.handsPlayed + (previousStats["countVPIP"] ?? 0)
+                        }
+                    }
+                    
                     if self.debug {
                         print("In Game Players (FROM RUP): ")
                         print(state.first?.players?.values.filter({$0.status == .inGame}).map({"\($0.id ?? "") : \($0.name ?? "")"}) ?? [])
@@ -98,6 +127,11 @@ class GameConnection: NSObject {
                                     if player.status == .requestedGameIngress {
                                         print("**** ADDING PLAYER:   \(player.name ?? "error")")
                                         player.id = playerId
+                                        if let previousStats = self.loadedStats[player.name ?? ""] {
+                                            print("\tfound previous stats on player: \(player.name ?? "error")")
+                                            player.handsSeen = player.handsSeen + (previousStats["hands"] ?? 0)
+                                            player.handsPlayed = player.handsPlayed + (previousStats["countVPIP"] ?? 0)
+                                        }
                                         self.players.append(player)
                                     }
                                     if player.status == .quiting {
@@ -161,17 +195,7 @@ class GameConnection: NSObject {
                                 player.updatedCurrentHandPlayed = false
                                 player.updatedCurrentHandSeen = false
                                 if player.handsSeen > 0 {
-                                    var playerType = ""
-                                    let vpip = Int((Double(player.handsPlayed) / Double(player.handsSeen)) * 100.0)
-                                    
-                                    if player.handsSeen > 20 {
-                                        if vpip > 40 { playerType = "🐠" }
-                                        else if vpip >= 20 { playerType = "🎢⚔️" }
-                                        else if vpip >= 12 { playerType = "🔥⚔️" }
-                                        else if vpip < 12 { playerType = "🧗‍♀️" }
-                                    }
-                                    
-                                    print("\(player.name ?? "error")\(playerType)\t\tVPIP: \(vpip)% (\(player.handsPlayed)/\(player.handsSeen))")
+                                    print("\(player.name ?? "error")\(player.playerType)\t\tVPIP: \(player.vpip)% (\(player.handsPlayed)/\(player.handsSeen))")
                                 }
                             }
                             print("****************************************************")

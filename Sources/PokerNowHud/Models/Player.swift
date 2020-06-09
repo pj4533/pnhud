@@ -27,4 +27,31 @@ class Player: NSObject, Codable {
         case name
         case status
     }
+    
+    var vpip: Int {
+        get {
+            return Int((Double(self.handsPlayed) / Double(self.handsSeen)) * 100.0)
+        }
+    }
+    
+    var playerType: String {
+        get {
+            var playerType = ""
+            
+            // basic vpip types
+            if self.handsSeen > 20 {
+                if self.vpip > 40 { playerType = "🐠" }
+                else if self.vpip >= 20 { playerType = "💣" }
+                else if self.vpip >= 12 { playerType = "🔒" }
+                else if self.vpip < 12 { playerType = "🧗‍♀️" }
+            }
+            
+            // basic pfr types
+            
+            // specialty types
+            // add 🐳  for high vpip low pfr
+
+            return playerType
+        }
+    }
 }
