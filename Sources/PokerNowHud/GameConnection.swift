@@ -8,6 +8,7 @@
 import Foundation
 import SocketIO
 import SwiftCSV
+import SwiftyTextTable
 
 class GameConnection: NSObject {
 
@@ -98,8 +99,8 @@ class GameConnection: NSObject {
                     for player in self.players {
                         if let previousStats = self.loadedStats[player.name ?? ""] {
                             print("\tfound previous stats on player: \(player.name ?? "error")")
-                            player.handsSeen = player.handsSeen + (previousStats["hands"] ?? 0)
-                            player.handsPlayed = player.handsPlayed + (previousStats["countVPIP"] ?? 0)
+                            player.statsHandsSeen = (previousStats["hands"] ?? 0)
+                            player.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
                         }
                     }
                     
@@ -129,8 +130,8 @@ class GameConnection: NSObject {
                                         player.id = playerId
                                         if let previousStats = self.loadedStats[player.name ?? ""] {
                                             print("\tfound previous stats on player: \(player.name ?? "error")")
-                                            player.handsSeen = player.handsSeen + (previousStats["hands"] ?? 0)
-                                            player.handsPlayed = player.handsPlayed + (previousStats["countVPIP"] ?? 0)
+                                            player.statsHandsSeen = (previousStats["hands"] ?? 0)
+                                            player.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
                                         }
                                         self.players.append(player)
                                     }
@@ -190,15 +191,18 @@ class GameConnection: NSObject {
                     
                     if (json["gT"] as? String) == "gameResult" {
                         if !self.showedResults {
-                            print("******************** END OF HAND ******************")
                             for player in self.players {
                                 player.updatedCurrentHandPlayed = false
                                 player.updatedCurrentHandSeen = false
-                                if player.handsSeen > 0 {
-                                    print("\(player.name ?? "error")\(player.playerType)\t\tVPIP: \(player.vpip)% (\(player.handsPlayed)/\(player.handsSeen))")
-                                }
+//                                if player.handsSeen > 0 {
+//                                    print("\(player.name ?? "error")\(player.playerType)\t\tVPIP: \(player.vpip)% (\(player.handsPlayed)/\(player.handsSeen))")
+//                                }
                             }
-                            print("****************************************************")
+                            // clear screen
+                            print("\u{001B}[2J")
+                            
+                            // print table
+                            print(self.players.filter({$0.handsSeen > 0}).renderTextTable())
                             self.showedResults = true
                         }
                     }
