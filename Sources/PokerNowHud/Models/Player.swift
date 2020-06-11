@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftyTextTable
+import Rainbow
 
 extension Player: TextTableRepresentable {
     static var columnHeaders: [String] {
@@ -14,7 +15,7 @@ extension Player: TextTableRepresentable {
     }
 
     var tableValues: [CustomStringConvertible] {
-        return ["\(self.name ?? "error")\(self.playerType)", self.totalVPIP, self.totalPFR, self.statsHandsSeen + self.handsSeen, self.vpip, self.pfr, self.handsSeen]
+        return ["\(self.name ?? "error")\(self.playerType)".utf8, self.totalVPIP, self.totalPFR, self.statsHandsSeen + self.handsSeen, self.vpip, self.pfr, self.handsSeen]
     }
 }
 
@@ -89,7 +90,6 @@ class Player: NSObject, Codable {
                 // specialty types
                 if (self.totalVPIP >= 30) && (self.totalPFR >= 30) { playerType = "🐴" }
                 if (self.totalVPIP >= 50) && (self.totalPFR <= 5) { playerType = "🐳" }
-
             }
             
 
