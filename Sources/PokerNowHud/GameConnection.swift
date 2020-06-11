@@ -26,25 +26,27 @@ class GameConnection: NSObject {
     var showedResults = false
     var isPreFlop = true
     
-    init(gameId: String) {
+    init(gameId: String, statsFilename: String?) {
         super.init()
 
-        print("Reading stat file...")
-        do {
-            let csvFile: CSV = try CSV(url: URL(fileURLWithPath: "vpip_pfr.csv"))
-            for row in csvFile.namedRows.reversed() {
-                if let player = row["Player"], let hands = Int(row["Hands"] ?? ""), let countVPIP = Int(row["Count VPIP"] ?? ""), let countPFR = Int(row["Count PFR"] ?? "") {
-                    self.loadedStats[player] = [
-                        "hands" : hands,
-                        "countVPIP" : countVPIP,
-                        "countPFR" : countPFR
-                    ]
+        if let statsFilename = statsFilename {
+            print("Reading stat file...")
+            do {
+                let csvFile: CSV = try CSV(url: URL(fileURLWithPath: statsFilename))
+                for row in csvFile.namedRows.reversed() {
+                    if let player = row["Player"], let hands = Int(row["Hands"] ?? ""), let countVPIP = Int(row["Count VPIP"] ?? ""), let countPFR = Int(row["Count PFR"] ?? "") {
+                        self.loadedStats[player] = [
+                            "hands" : hands,
+                            "countVPIP" : countVPIP,
+                            "countPFR" : countPFR
+                        ]
+                    }
                 }
+            } catch let parseError as CSVParseError {
+                print(parseError)
+            } catch {
+                print("Error loading file")
             }
-        } catch let parseError as CSVParseError {
-            print(parseError)
-        } catch {
-            print("Error loading file")
         }
         
         let group = DispatchGroup()
@@ -247,27 +249,38 @@ class GameConnection: NSObject {
     }
 
     func renderTextTable() {
-        print(String(format:"%@ %@ %@ %@ %@ %@ %@",
+        print(String(format:"%@ %@ %@ %@ %@ %@ %@ %@ %@",
                      "Name".padding(toLength: 20, withPad: " ", startingAt: 0),
                      "VPIP %".padding(toLength: 8, withPad: " ", startingAt: 0),
                      "PFR %".padding(toLength: 8, withPad: " ", startingAt: 0),
+                     "PFR/VPIP %".padding(toLength: 8, withPad: " ", startingAt: 0),
                      "Hands".padding(toLength: 8, withPad: " ", startingAt: 0),
                      "Session VPIP %".padding(toLength: 15, withPad: " ", startingAt: 0),
                      "Session PFR %".padding(toLength: 15, withPad: " ", startingAt: 0),
+                     "Session PFR/VPIP %".padding(toLength: 17, withPad: " ", startingAt: 0),
                      "Session Hands".padding(toLength: 15, withPad: " ", startingAt: 0)).white.bold)
         for player in self.players.filter({$0.handsSeen > 0}) {
           let nameAndType = "\(player.name ?? "error")\(player.playerType)"
             var namePadding = 20
-            if #available(OSX 10.12.2, *) {
-                namePadding = nameAndType.containsEmoji ? 21 : 20
+            
+            // emoji hacks
+            if nameAndType.contains("🐭") || nameAndType.contains("📞") {
+                namePadding = 20
+            } else {
+                if #available(OSX 10.12.2, *) {
+                    namePadding = nameAndType.containsEmoji ? 21 : 20
+                }
             }
-            print(String(format:"%@ %@ %@ %@ %@ %@ %@",
+            
+            print(String(format:"%@ %@ %@ %@ %@ %@ %@ %@ %@",
                          "\(nameAndType)".padding(toLength: namePadding, withPad: " ", startingAt: 0),
                          "\(player.totalVPIP)".padding(toLength: 8, withPad: " ", startingAt: 0),
                          "\(player.totalPFR)".padding(toLength: 8, withPad: " ", startingAt: 0),
+                         "\(player.totalVPIPPFR)".padding(toLength: 8, withPad: " ", startingAt: 0),
                          "\(player.handsSeen + player.statsHandsSeen)".padding(toLength: 8, withPad: " ", startingAt: 0),
                          "\(player.vpip)".padding(toLength: 15, withPad: " ", startingAt: 0),
                          "\(player.pfr)".padding(toLength: 15, withPad: " ", startingAt: 0),
+                         "\(player.vpipPFR)".padding(toLength: 17, withPad: " ", startingAt: 0),
                          "\(player.handsSeen)".padding(toLength: 15, withPad: " ", startingAt: 0)))
         }
     }

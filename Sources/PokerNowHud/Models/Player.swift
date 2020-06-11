@@ -45,7 +45,17 @@ class Player: NSObject, Codable {
             return Int((Double(self.handsPlayed + self.statsHandsPlayed) / Double(self.handsSeen + self.statsHandsSeen)) * 100.0)
         }
     }
-    
+
+    var totalVPIPPFR: Int {
+        get {
+            if (self.handsPlayed + self.statsHandsPlayed) > 0 {
+                return Int( (Double(self.handsPFRaised + self.statsHandsPFRaised)) / (Double(self.handsPlayed + self.statsHandsPlayed)) * 100.0)
+            } else {
+                return 0
+            }
+        }
+    }
+
     var vpip: Int {
         get {
             return Int((Double(self.handsPlayed) / Double(self.handsSeen)) * 100.0)
@@ -55,6 +65,16 @@ class Player: NSObject, Codable {
     var pfr: Int {
         get {
             return Int((Double(self.handsPFRaised) / Double(self.handsSeen)) * 100.0)
+        }
+    }
+
+    var vpipPFR: Int {
+        get {
+            if self.handsPlayed > 0 {
+                return Int((Double(self.handsPFRaised) / Double(self.handsPlayed)) * 100.0)
+            } else {
+                return 0
+            }
         }
     }
 
