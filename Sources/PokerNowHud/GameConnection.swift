@@ -249,8 +249,12 @@ class GameConnection: NSObject {
         print("\u{001B}[1m\u{001B}[37m\(String(format:"%@ %@ %@ %@ %@ %@ %@","Name".padding(toLength: 25, withPad: " ", startingAt: 0),"VPIP".padding(toLength: 10, withPad: " ", startingAt: 0),"PFR".padding(toLength: 10, withPad: " ", startingAt: 0),"Hands".padding(toLength: 10, withPad: " ", startingAt: 0),"Session VPIP".padding(toLength: 15, withPad: " ", startingAt: 0),"Session PFR".padding(toLength: 15, withPad: " ", startingAt: 0),"Session Hands".padding(toLength: 15, withPad: " ", startingAt: 0)))\u{001B}[0m")
         for player in self.players.filter({$0.handsSeen > 0}) {
           let nameAndType = "\(player.name ?? "error")\(player.playerType)"
+            var namePadding = 25
+            if #available(OSX 10.12.2, *) {
+                namePadding = nameAndType.containsEmoji ? 26 : 25
+            }
           print(String(format:"%@ %@ %@ %@ %@ %@ %@",
-                       "\(nameAndType)".padding(toLength: 25, withPad: " ", startingAt: 0),
+                       "\(nameAndType)".padding(toLength: namePadding, withPad: " ", startingAt: 0),
                        "\(player.totalVPIP)".padding(toLength: 10, withPad: " ", startingAt: 0),
                        "\(player.totalPFR)".padding(toLength: 10, withPad: " ", startingAt: 0),
                        "\(player.handsSeen + player.statsHandsSeen)".padding(toLength: 10, withPad: " ", startingAt: 0),
