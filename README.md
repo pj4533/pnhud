@@ -21,9 +21,9 @@ OPTIONS:
 
 `swift build -c release` Build a release version
 
-`./.build/debug/pn2ps` Runs app after building
+`./.build/debug/pnhud` Runs app after building
 
-`swift run pn2ps` Runs app directly
+`swift run pnhud` Runs app directly
 
 `swift package generate-xcodeproj` Generates an xcode project file
 
