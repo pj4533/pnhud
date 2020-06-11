@@ -6,18 +6,6 @@
 //
 
 import Foundation
-import SwiftyTextTable
-import Rainbow
-
-extension Player: TextTableRepresentable {
-    static var columnHeaders: [String] {
-        return ["Name", "VPIP %", "PFR %", "Hands", "Session VPIP %", "Session PFR %", "Session Hands"]
-    }
-
-    var tableValues: [CustomStringConvertible] {
-        return ["\(self.name ?? "error")\(self.playerType)".utf8, self.totalVPIP, self.totalPFR, self.statsHandsSeen + self.handsSeen, self.vpip, self.pfr, self.handsSeen]
-    }
-}
 
 class Player: NSObject, Codable {
     enum Status : String, Codable {

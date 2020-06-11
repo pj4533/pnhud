@@ -8,7 +8,6 @@
 import Foundation
 import SocketIO
 import SwiftCSV
-import SwiftyTextTable
 
 class GameConnection: NSObject {
 
@@ -226,9 +225,9 @@ class GameConnection: NSObject {
                                 if !self.debug {
                                     print("\u{001B}[2J")
                                 }
-                                
+
                                 // print table
-                                print(self.players.filter({$0.handsSeen > 0}).renderTextTable())
+                                self.renderTextTable()
                                 self.showedResults = true
                             }
                             self.isPreFlop = true
@@ -244,6 +243,21 @@ class GameConnection: NSObject {
         }
         
 
+    }
+
+    func renderTextTable() {
+        print("\u{001B}[1m\u{001B}[37m\(String(format:"%@ %@ %@ %@ %@ %@ %@","Name".padding(toLength: 25, withPad: " ", startingAt: 0),"VPIP".padding(toLength: 10, withPad: " ", startingAt: 0),"PFR".padding(toLength: 10, withPad: " ", startingAt: 0),"Hands".padding(toLength: 10, withPad: " ", startingAt: 0),"Session VPIP".padding(toLength: 15, withPad: " ", startingAt: 0),"Session PFR".padding(toLength: 15, withPad: " ", startingAt: 0),"Session Hands".padding(toLength: 15, withPad: " ", startingAt: 0)))\u{001B}[0m")
+        for player in self.players.filter({$0.handsSeen > 0}) {
+          let nameAndType = "\(player.name ?? "error")\(player.playerType)"
+          print(String(format:"%@ %@ %@ %@ %@ %@ %@",
+                       "\(nameAndType)".padding(toLength: 25, withPad: " ", startingAt: 0),
+                       "\(player.totalVPIP)".padding(toLength: 10, withPad: " ", startingAt: 0),
+                       "\(player.totalPFR)".padding(toLength: 10, withPad: " ", startingAt: 0),
+                       "\(player.handsSeen + player.statsHandsSeen)".padding(toLength: 10, withPad: " ", startingAt: 0),
+                       "\(player.vpip)".padding(toLength: 15, withPad: " ", startingAt: 0),
+                       "\(player.pfr)".padding(toLength: 15, withPad: " ", startingAt: 0),
+                       "\(player.handsSeen)".padding(toLength: 15, withPad: " ", startingAt: 0)))
+        }
     }
     
     
