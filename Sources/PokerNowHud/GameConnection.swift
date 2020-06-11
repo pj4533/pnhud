@@ -264,7 +264,7 @@ class GameConnection: NSObject {
             var namePadding = 20
             
             // emoji hacks
-            if nameAndType.contains("🐭") || nameAndType.contains("📞") {
+            if nameAndType.contains("🐭") || nameAndType.contains("📞") || nameAndType.contains("🐴") {
                 namePadding = 20
             } else {
                 if #available(OSX 10.12.2, *) {
