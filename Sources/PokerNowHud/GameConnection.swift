@@ -249,16 +249,20 @@ class GameConnection: NSObject {
     }
 
     func renderTextTable() {
-        print(String(format:"%@ %@ %@ %@ %@ %@ %@ %@ %@",
-                     "Name".padding(toLength: 20, withPad: " ", startingAt: 0),
-                     "VPIP %".padding(toLength: 8, withPad: " ", startingAt: 0),
-                     "PFR %".padding(toLength: 8, withPad: " ", startingAt: 0),
-                     "PFR/VPIP %".padding(toLength: 8, withPad: " ", startingAt: 0),
-                     "Hands".padding(toLength: 8, withPad: " ", startingAt: 0),
-                     "Session VPIP %".padding(toLength: 15, withPad: " ", startingAt: 0),
-                     "Session PFR %".padding(toLength: 15, withPad: " ", startingAt: 0),
-                     "Session PFR/VPIP %".padding(toLength: 17, withPad: " ", startingAt: 0),
-                     "Session Hands".padding(toLength: 15, withPad: " ", startingAt: 0)).white.bold)
+        let headersString = String(format:"%@ %@ %@ %@ %@ %@ %@ %@ %@",
+        "Name".padding(toLength: 20, withPad: " ", startingAt: 0),
+        "VPIP %".padding(toLength: 8, withPad: " ", startingAt: 0),
+        "PFR %".padding(toLength: 8, withPad: " ", startingAt: 0),
+        "PFR/VPIP %".padding(toLength: 8, withPad: " ", startingAt: 0),
+        "Hands".padding(toLength: 8, withPad: " ", startingAt: 0),
+        "Session VPIP %".padding(toLength: 15, withPad: " ", startingAt: 0),
+        "Session PFR %".padding(toLength: 15, withPad: " ", startingAt: 0),
+        "Session PFR/VPIP %".padding(toLength: 17, withPad: " ", startingAt: 0),
+        "Session Hands".padding(toLength: 15, withPad: " ", startingAt: 0))
+        
+        print(headersString.white.bold)
+        print("".padding(toLength: headersString.count, withPad: "=", startingAt: 0).white.bold)
+
         for player in self.players.filter({$0.handsSeen > 0}) {
           let nameAndType = "\(player.name ?? "error")\(player.playerType)"
             var namePadding = 20
@@ -286,6 +290,7 @@ class GameConnection: NSObject {
                          "\(player.pfr)".padding(toLength: 15, withPad: " ", startingAt: 0),
                          "\(player.vpipPFR)".padding(toLength: 17, withPad: " ", startingAt: 0),
                          "\(player.handsSeen)".padding(toLength: 15, withPad: " ", startingAt: 0)))
+            print("".padding(toLength: headersString.count, withPad: "-", startingAt: 0))
         }
     }
     
