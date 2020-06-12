@@ -25,7 +25,7 @@ OPTIONS:
 
 ### How To Run
 
-1. Download the latest (release)[https://github.com/pj4533/pnhud/releases]
+1. Download the latest [release](https://github.com/pj4533/pnhud/releases)
 2. Open a terminal window and find the folder you downloaded to
 3. Command to make app executable:  `chmod +x pnhud`
 4. Command to run:  `./pnhud <game id>`
