@@ -4,6 +4,8 @@ Terminal based heads up display for PokerNow tables
 
 ![screenshot](pnhud.png)
 
+pnhud will connect to the websocket running a PokerNow table, and watch messages describing the table action.  When it sees a player play (or raise), it increments the corresponding stat.  After each hand, a formatted table is displayed with the stats on each player.
+
 ```
 OVERVIEW: Command line driven heads up display for PokerNow.club
 
