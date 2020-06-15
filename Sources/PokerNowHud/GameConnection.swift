@@ -34,7 +34,7 @@ class GameConnection: NSObject {
             do {
                 let csvFile: CSV = try CSV(url: URL(fileURLWithPath: statsFilename))
                 for row in csvFile.namedRows.reversed() {
-                    if let player = row["Player"], let hands = Int(row["Hands"] ?? ""), let countVPIP = Int(row["Count VPIP"] ?? ""), let countPFR = Int(row["Count PFR"] ?? "") {
+                    if let player = row["Player"], let hands = Int((row["Hands"] ?? "").replacingOccurrences(of: ",", with: "")), let countVPIP = Int((row["Count VPIP"] ?? "").replacingOccurrences(of: ",", with: "")), let countPFR = Int((row["Count PFR"] ?? "").replacingOccurrences(of: ",", with: "")) {
                         self.loadedStats[player] = [
                             "hands" : hands,
                             "countVPIP" : countVPIP,
