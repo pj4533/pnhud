@@ -16,11 +16,13 @@ class GameConnection: NSObject {
     var manager: SocketManager?
     var connected: Bool = false
     
+    var allPlayers: [Player] = []
     var players: [Player] = []
 
     var loadedStats: [String:[String:Int]] = [:]
     
     var ready = false
+    var loadedRUP = false
     var firstMessage = true
     
     var showedResults = false
@@ -101,6 +103,7 @@ class GameConnection: NSObject {
                     let state = try decoder.decode([GameState].self, from: data)
 
                     self.players = state.first?.players?.map({$0.value}) ?? []
+                    self.allPlayers = self.players
                     for player in self.players {
                         if let previousStats = self.loadedStats[player.name ?? ""] {
                             print("\tfound previous stats on player: \(player.name ?? "error")")
@@ -119,124 +122,125 @@ class GameConnection: NSObject {
                         print(error)
                     }
                 }
+                self.loadedRUP = true
             })
 
             socket?.on("gC", callback: { (newStateArray, ack) in
-                if let json = newStateArray.first as? [String:Any] {
-                    do {
-                        let data = try JSONSerialization.data(withJSONObject: json, options: [])
-                        let decoder = JSONDecoder()
-                        let state = try decoder.decode(GameState.self, from: data)
-                        
-                        if state.players != nil {
-                            for playerId in state.players?.map({$0.key}) ?? [] {
-                                if let player = state.players?[playerId] {
-                                    if player.status == .requestedGameIngress {
-                                        print("**** ADDING PLAYER:   \(player.name ?? "error")")
-                                        player.id = playerId
-                                        if let previousStats = self.loadedStats[player.name ?? ""] {
-                                            print("\tfound previous stats on player: \(player.name ?? "error")")
-                                            player.statsHandsSeen = (previousStats["hands"] ?? 0)
-                                            player.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
-                                            player.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
-                                        }
-                                        self.players.append(player)
-                                    }
-                                    if player.status == .quiting {
-                                        print("**** QUITING PLAYER:   \(playerId)")
-                                        self.players.removeAll(where: {$0.id == playerId})
-                                    }
-                                }
-                            }
-                        }
-                    } catch let error {
-                        if self.debug {
-                            print(error)
-                        }
-                    }
-
-                    if self.ready {
-                        if let tb = json["tB"] as? [String:Any] {
-                            for key in tb.keys {
-                                if let player = self.players.filter({$0.id == key}).first {
-                                    if !player.updatedCurrentHandSeen {
-                                        if self.debug {
-                                            print("-> \(player.name ?? "error") saw hand.")
-                                        }
-                                        self.showedResults = false
-                                        player.handsSeen = player.handsSeen + 1
-                                        player.updatedCurrentHandSeen = true
-                                    }
-                                }
-                            }
-                            if let _ = Int("\(tb.values.first ?? "")"), tb.keys.count == 1 {
-                                if let player = self.players.filter({$0.id == tb.keys.first}).first {
-                                    if !player.updatedCurrentHandPlayed {
-                                        if self.debug {
-                                            print("-> \(player.name ?? "error") played hand.")
-                                        }
-                                        player.handsPlayed = player.handsPlayed + 1
-                                        player.updatedCurrentHandPlayed = true
-                                    }
-                                    
-                                    if let _ = Int("\(json["cHB"] ?? "")"), self.isPreFlop {
-                                        if !player.updatedCurrentHandPFRaised {
-                                            if self.debug {
-                                                print("-> \(player.name ?? "error") raised preflop.")
+                if self.loadedRUP {
+                    if let json = newStateArray.first as? [String:Any] {
+                        do {
+                            let data = try JSONSerialization.data(withJSONObject: json, options: [])
+                            let decoder = JSONDecoder()
+                            let state = try decoder.decode(GameState.self, from: data)
+                            
+                            if state.players != nil {
+                                for playerId in state.players?.map({$0.key}) ?? [] {
+                                    if let player = state.players?[playerId] {
+                                        if player.status == .requestedGameIngress {
+                                            self.addPlayerId(playerId: playerId, player: player)
+                                        } else if player.status == .quiting {
+                                            print("**** QUITING PLAYER:   \(playerId)")
+                                            self.players.removeAll(where: {$0.id == playerId})
+                                        } else {
+                                            if (player.status != nil) && (player.status != .watching) && (player.disconnectedSince == nil) {
+                                                if !self.players.map({$0.id}).contains(playerId) {
+                                                    print("STATUS: \(player.status?.rawValue ?? "\(json["players"] ?? [])")")
+                                                    self.addPlayerId(playerId: playerId, player: player)
+                                                }
                                             }
-                                            player.handsPFRaised = player.handsPFRaised + 1
-                                            player.updatedCurrentHandPFRaised = true
                                         }
                                     }
                                 }
                             }
-                        } else if let pgs = json["pGS"] as? [String:Any] {
-                            for key in pgs.keys {
-                                if let player = self.players.filter({$0.id == key}).first {
-                                    if !player.updatedCurrentHandSeen {
-                                        if self.debug {
-                                            print("-> \(player.name ?? "error") saw hand.")
-                                        }
-                                        self.showedResults = false
-                                        player.handsSeen = player.handsSeen + 1
-                                        player.updatedCurrentHandSeen = true
-                                    }
-                                }
+                        } catch let error {
+                            if self.debug {
+                                print(error)
                             }
                         }
 
-                        if (json["gT"] as? String) == "flop" {
-                            self.isPreFlop = false
-                        }
-                    } else {
-                        if self.firstMessage {
-                            print("--> Waiting for end of current hand...")
-                            self.firstMessage = false
-                        }
-                    }
-
-
-                    if (json["gT"] as? String) == "gameResult" {
                         if self.ready {
-                            if !self.showedResults {
-                                for player in self.players {
-                                    player.updatedCurrentHandPlayed = false
-                                    player.updatedCurrentHandSeen = false
-                                    player.updatedCurrentHandPFRaised = false
+                            if let tb = json["tB"] as? [String:Any] {
+                                for key in tb.keys {
+                                    if let player = self.players.filter({$0.id == key}).first {
+                                        if !player.updatedCurrentHandSeen {
+                                            if self.debug {
+                                                print("-> \(player.name ?? "error") saw hand.")
+                                            }
+                                            self.showedResults = false
+                                            player.handsSeen = player.handsSeen + 1
+                                            player.updatedCurrentHandSeen = true
+                                        }
+                                    }
                                 }
-                                // clear screen
-                                if !self.debug {
-                                    print("\u{001B}[2J")
+                                if let _ = Int("\(tb.values.first ?? "")"), tb.keys.count == 1 {
+                                    if let player = self.players.filter({$0.id == tb.keys.first}).first {
+                                        if !player.updatedCurrentHandPlayed {
+                                            if self.debug {
+                                                print("-> \(player.name ?? "error") played hand.")
+                                            }
+                                            player.handsPlayed = player.handsPlayed + 1
+                                            player.updatedCurrentHandPlayed = true
+                                        }
+                                        
+                                        if let _ = Int("\(json["cHB"] ?? "")"), self.isPreFlop {
+                                            if !player.updatedCurrentHandPFRaised {
+                                                if self.debug {
+                                                    print("-> \(player.name ?? "error") raised preflop.")
+                                                }
+                                                player.handsPFRaised = player.handsPFRaised + 1
+                                                player.updatedCurrentHandPFRaised = true
+                                            }
+                                        }
+                                    }
                                 }
-
-                                // print table
-                                self.renderTextTable()
-                                self.showedResults = true
+                            } else if let pgs = json["pGS"] as? [String:Any] {
+                                for key in pgs.keys {
+                                    if let player = self.players.filter({$0.id == key}).first {
+                                        if !player.updatedCurrentHandSeen {
+                                            if self.debug {
+                                                print("-> \(player.name ?? "error") saw hand.")
+                                            }
+                                            self.showedResults = false
+                                            player.handsSeen = player.handsSeen + 1
+                                            player.updatedCurrentHandSeen = true
+                                        }
+                                    }
+                                }
                             }
-                            self.isPreFlop = true
+
+                            if (json["gT"] as? String) == "flop" {
+                                self.isPreFlop = false
+                            }
                         } else {
-                            print("--> Saw end of hand.  Recording stats now...")
-                            self.ready = true
+                            if self.firstMessage {
+                                print("--> Waiting for end of current hand...")
+                                self.firstMessage = false
+                            }
+                        }
+
+
+                        if (json["gT"] as? String) == "gameResult" {
+                            if self.ready {
+                                if !self.showedResults {
+                                    for player in self.players {
+                                        player.updatedCurrentHandPlayed = false
+                                        player.updatedCurrentHandSeen = false
+                                        player.updatedCurrentHandPFRaised = false
+                                    }
+                                    // clear screen
+                                    if !self.debug {
+                                        print("\u{001B}[2J")
+                                    }
+
+                                    // print table
+                                    self.renderTextTable()
+                                    self.showedResults = true
+                                }
+                                self.isPreFlop = true
+                            } else {
+                                print("--> Saw end of hand.  Recording stats now...")
+                                self.ready = true
+                            }
                         }
                     }
                 }
@@ -248,6 +252,38 @@ class GameConnection: NSObject {
 
     }
 
+    func addPlayerId(playerId: String, player: Player) {
+        if !self.players.map({$0.id}).contains(playerId) {
+            if let playerName = player.name {
+                print("**** ADDING PLAYER: \(playerName)  STATUS: \(player.status?.rawValue ?? "unknown")")
+                player.id = playerId
+                if let previousStats = self.loadedStats[playerName] {
+                    print("\tfound previous stats on player: \(playerName)")
+                    player.statsHandsSeen = (previousStats["hands"] ?? 0)
+                    player.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
+                    player.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
+                }
+                self.players.append(player)
+                if !self.allPlayers.map({$0.id}).contains(playerId) {
+                    self.allPlayers.append(player)
+                }
+            } else if self.allPlayers.map({$0.id}).contains(playerId) {
+                if let previousPlayer = self.allPlayers.first(where: {$0.id == playerId}), let playerName = previousPlayer.name {
+                    print("**** ADDING PREVIOUS PLAYER: \(playerName)  STATUS: \(previousPlayer.status?.rawValue ?? "unknown")")
+                    if let previousStats = self.loadedStats[playerName] {
+                        print("\tfound previous stats on player: \(playerName)")
+                        previousPlayer.statsHandsSeen = (previousStats["hands"] ?? 0)
+                        previousPlayer.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
+                        previousPlayer.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
+                    }
+                    self.players.append(previousPlayer)
+                }
+            } else {
+                print("**** ERROR PLAYER NAME NOT FOUND WHEN ADDING NEW PLAYER")
+            }
+        }
+    }
+    
     func renderTextTable() {
         let headersString = String(format:"%@ %@ %@ %@ %@ %@ %@ %@ %@",
         "Name".padding(toLength: 20, withPad: " ", startingAt: 0),

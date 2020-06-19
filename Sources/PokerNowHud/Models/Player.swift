@@ -15,6 +15,7 @@ class Player: NSObject, Codable {
     var id: String?
     var name: String?
     var status: Status?
+    var disconnectedSince: Int?
     
     var updatedCurrentHandSeen = false
     var updatedCurrentHandPlayed = false
@@ -32,6 +33,7 @@ class Player: NSObject, Codable {
         case id
         case name
         case status
+        case disconnectedSince
     }
     
     var totalPFR: Int {
