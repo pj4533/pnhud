@@ -28,7 +28,7 @@ class GameConnection: NSObject {
     var showedResults = false
     var isPreFlop = true
     
-    init(gameId: String, statsFilename: String?) {
+    init(gameIdOrURL: String, statsFilename: String?) {
         super.init()
 
         if let statsFilename = statsFilename {
@@ -52,6 +52,8 @@ class GameConnection: NSObject {
         }
         
         let group = DispatchGroup()
+        
+        let gameId = gameIdOrURL.replacingOccurrences(of: "https://www.pokernow.club/games/", with: "")
         
         print("Connecting to: \(gameId)...")
         let request = URLRequest(url: URL(string: "https://www.pokernow.club/games/\(gameId)")!)
