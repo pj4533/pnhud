@@ -32,7 +32,7 @@ OPTIONS:
 3. Command to make app executable:  `chmod +x pnhud`
 4. Command to run:  `./pnhud <game id>`
 
-You might need to give MacOS permission to run the app, also the 'game id' is the last portion of the PokerNow URL (not the whole URL).
+You might need to give MacOS permission to run the app.
 
 ### Stats File Structure
 
