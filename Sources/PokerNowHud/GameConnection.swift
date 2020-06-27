@@ -108,10 +108,10 @@ class GameConnection: NSObject {
                     self.allPlayers = self.players
                     for player in self.players {
                         if let previousStats = self.loadedStats[player.name ?? ""] {
-                            print("\tfound previous stats on player: \(player.name ?? "error")")
                             player.statsHandsSeen = (previousStats["hands"] ?? 0)
                             player.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
                             player.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
+                            print("\tfound previous stats on player: \(player.name ?? "error")\(player.playerType)")
                         }
                     }
                     
@@ -260,10 +260,10 @@ class GameConnection: NSObject {
                 print("**** ADDING PLAYER: \(playerName)  STATUS: \(player.status?.rawValue ?? "unknown")")
                 player.id = playerId
                 if let previousStats = self.loadedStats[playerName] {
-                    print("\tfound previous stats on player: \(playerName)")
                     player.statsHandsSeen = (previousStats["hands"] ?? 0)
                     player.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
                     player.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
+                    print("\tfound previous stats on player: \(playerName)\(player.playerType)")
                 }
                 self.players.append(player)
                 if !self.allPlayers.map({$0.id}).contains(playerId) {
@@ -273,10 +273,10 @@ class GameConnection: NSObject {
                 if let previousPlayer = self.allPlayers.first(where: {$0.id == playerId}), let playerName = previousPlayer.name {
                     print("**** ADDING PREVIOUS PLAYER: \(playerName)  STATUS: \(previousPlayer.status?.rawValue ?? "unknown")")
                     if let previousStats = self.loadedStats[playerName] {
-                        print("\tfound previous stats on player: \(playerName)")
                         previousPlayer.statsHandsSeen = (previousStats["hands"] ?? 0)
                         previousPlayer.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
                         previousPlayer.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
+                        print("\tfound previous stats on player: \(playerName)\(previousPlayer.playerType)")
                     }
                     self.players.append(previousPlayer)
                 }
