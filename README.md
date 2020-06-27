@@ -12,7 +12,7 @@ OVERVIEW: Command line driven heads up display for PokerNow.club
 USAGE: pnhud <game-id> [--stats <stats>]
 
 ARGUMENTS:
-  <game-id>               Poker Now Game Id
+  <game-id>               Poker Now Game Id or URL
 
 OPTIONS:
   -s, --stats <stats>     Stats File
