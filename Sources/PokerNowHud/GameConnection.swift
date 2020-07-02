@@ -111,7 +111,7 @@ class GameConnection: NSObject {
                             player.statsHandsSeen = (previousStats["hands"] ?? 0)
                             player.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
                             player.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
-                            print("\tfound previous stats on player: \(player.name ?? "error")\(player.playerType)")
+                            print("\tfound previous stats on player: \(player.name ?? "error") @ \(player.id ?? "unknown") \(player.playerType)")
                         }
                     }
                     
@@ -257,13 +257,13 @@ class GameConnection: NSObject {
     func addPlayerId(playerId: String, player: Player) {
         if !self.players.map({$0.id}).contains(playerId) {
             if let playerName = player.name {
-                print("**** ADDING PLAYER: \(playerName)  STATUS: \(player.status?.rawValue ?? "unknown")")
+                print("**** ADDING PLAYER: \(playerName) @ \(playerId)  STATUS: \(player.status?.rawValue ?? "unknown")")
                 player.id = playerId
                 if let previousStats = self.loadedStats[playerName] {
                     player.statsHandsSeen = (previousStats["hands"] ?? 0)
                     player.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
                     player.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
-                    print("\tfound previous stats on player: \(playerName)\(player.playerType)")
+                    print("\tfound previous stats on player: \(playerName)@\(playerId)\(player.playerType)")
                 }
                 self.players.append(player)
                 if !self.allPlayers.map({$0.id}).contains(playerId) {
@@ -271,12 +271,12 @@ class GameConnection: NSObject {
                 }
             } else if self.allPlayers.map({$0.id}).contains(playerId) {
                 if let previousPlayer = self.allPlayers.first(where: {$0.id == playerId}), let playerName = previousPlayer.name {
-                    print("**** ADDING PREVIOUS PLAYER: \(playerName)  STATUS: \(previousPlayer.status?.rawValue ?? "unknown")")
+                    print("**** ADDING PREVIOUS PLAYER: \(playerName) @ \(playerId)  STATUS: \(previousPlayer.status?.rawValue ?? "unknown")")
                     if let previousStats = self.loadedStats[playerName] {
                         previousPlayer.statsHandsSeen = (previousStats["hands"] ?? 0)
                         previousPlayer.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
                         previousPlayer.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
-                        print("\tfound previous stats on player: \(playerName)\(previousPlayer.playerType)")
+                        print("\tfound previous stats on player: \(playerName)@\(playerId)\(previousPlayer.playerType)")
                     }
                     self.players.append(previousPlayer)
                 }
@@ -287,23 +287,23 @@ class GameConnection: NSObject {
     }
     
     func renderTextTable() {
+        var namePadding = 35
         let headersString = String(format:"%@ %@ %@ %@ %@ %@ %@ %@ %@",
-        "Name".padding(toLength: 20, withPad: " ", startingAt: 0),
+        "Name".padding(toLength: namePadding, withPad: " ", startingAt: 0),
         "VPIP %".padding(toLength: 8, withPad: " ", startingAt: 0),
         "PFR %".padding(toLength: 8, withPad: " ", startingAt: 0),
         "PFR/VPIP %".padding(toLength: 8, withPad: " ", startingAt: 0),
         "Hands".padding(toLength: 8, withPad: " ", startingAt: 0),
-        "Session VPIP %".padding(toLength: 15, withPad: " ", startingAt: 0),
-        "Session PFR %".padding(toLength: 15, withPad: " ", startingAt: 0),
-        "Session PFR/VPIP %".padding(toLength: 17, withPad: " ", startingAt: 0),
-        "Session Hands".padding(toLength: 15, withPad: " ", startingAt: 0))
+        "S VPIP %".padding(toLength: 9, withPad: " ", startingAt: 0),
+        "S PFR %".padding(toLength: 9, withPad: " ", startingAt: 0),
+        "S PFR/VPIP %".padding(toLength: 11, withPad: " ", startingAt: 0),
+        "S Hands".padding(toLength: 9, withPad: " ", startingAt: 0))
         
         print(headersString.white.bold)
         print("".padding(toLength: headersString.count, withPad: "=", startingAt: 0).white.bold)
 
         for player in self.players.filter({$0.handsSeen > 0}) {
-          let nameAndType = "\(player.name ?? "error")\(player.playerType)"
-            var namePadding = 20
+            let nameAndType = "\(player.name ?? "error") @ \(player.id ?? "unknown") \(player.playerType)"
             
             // emoji hacks
             if nameAndType.contains("🐭") ||
@@ -311,10 +311,10 @@ class GameConnection: NSObject {
                 nameAndType.contains("🐴") ||
                 nameAndType.contains("🧗‍♀️") ||
                 nameAndType.contains("🐳") {
-                namePadding = 20
+                namePadding = 35
             } else {
                 if #available(OSX 10.12.2, *) {
-                    namePadding = nameAndType.containsEmoji ? 21 : 20
+                    namePadding = nameAndType.containsEmoji ? 36 : 35
                 }
             }
             
@@ -324,10 +324,10 @@ class GameConnection: NSObject {
                          "\(player.totalPFR)".padding(toLength: 8, withPad: " ", startingAt: 0),
                          "\(player.totalVPIPPFR)".padding(toLength: 8, withPad: " ", startingAt: 0),
                          "\(player.handsSeen + player.statsHandsSeen)".padding(toLength: 8, withPad: " ", startingAt: 0),
-                         "\(player.vpip)".padding(toLength: 15, withPad: " ", startingAt: 0),
-                         "\(player.pfr)".padding(toLength: 15, withPad: " ", startingAt: 0),
-                         "\(player.vpipPFR)".padding(toLength: 17, withPad: " ", startingAt: 0),
-                         "\(player.handsSeen)".padding(toLength: 15, withPad: " ", startingAt: 0)))
+                         "\(player.vpip)".padding(toLength: 9, withPad: " ", startingAt: 0),
+                         "\(player.pfr)".padding(toLength: 9, withPad: " ", startingAt: 0),
+                         "\(player.vpipPFR)".padding(toLength: 11, withPad: " ", startingAt: 0),
+                         "\(player.handsSeen)".padding(toLength: 9, withPad: " ", startingAt: 0)))
             print("".padding(toLength: headersString.count, withPad: "-", startingAt: 0))
         }
     }
