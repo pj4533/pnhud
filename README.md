@@ -39,10 +39,10 @@ You might need to give MacOS permission to run the app.
 Optionally you can load a CSV file with stats from previous sessions.  This way pnhud will show you both the current session realtime, but also combine it with your older stats on players.  I export my stats from PokerTracker, but as long as they are in the right format, you can do it however you want.  pnhud is very specific for now, so you'll need the stats file in this format, with these column headings:
 
 ```
-"Player","Hands","Count VPIP","Count PFR"
-"player name 1","94","27","14"
-"player name 2","34","14","7"
-"player name 3","559","116","67"
+"Player","Hands","Count VPIP","Count PFR","3Bet PF","CBet F"
+"player1","859","243","83","4.21","71.70"
+"player2","302","162","20","3.11","66.67"
+"player3","556","160","31","2.60","50.00"
 ```
 
 * Hands: number of hands seen
