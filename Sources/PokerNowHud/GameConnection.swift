@@ -19,7 +19,8 @@ class GameConnection: NSObject {
     var allPlayers: [Player] = []
     var players: [Player] = []
 
-    var loadedStats: [String:[String:Int]] = [:]
+    var loadedValues: [String:[String:Int]] = [:]
+    var loadedStats: [String:[String:Double]] = [:]
     
     var ready = false
     var loadedRUP = false
@@ -36,11 +37,15 @@ class GameConnection: NSObject {
             do {
                 let csvFile: CSV = try CSV(url: URL(fileURLWithPath: statsFilename))
                 for row in csvFile.namedRows.reversed() {
-                    if let player = row["Player"], let hands = Int((row["Hands"] ?? "").replacingOccurrences(of: ",", with: "")), let countVPIP = Int((row["Count VPIP"] ?? "").replacingOccurrences(of: ",", with: "")), let countPFR = Int((row["Count PFR"] ?? "").replacingOccurrences(of: ",", with: "")) {
-                        self.loadedStats[player] = [
+                    if let player = row["Player"]?.lowercased(), let hands = Int((row["Hands"] ?? "").replacingOccurrences(of: ",", with: "")), let countVPIP = Int((row["Count VPIP"] ?? "").replacingOccurrences(of: ",", with: "")), let countPFR = Int((row["Count PFR"] ?? "").replacingOccurrences(of: ",", with: "")), let threeBet = Double((row["3Bet PF"] ?? "").replacingOccurrences(of: ",", with: "")), let cBet = Double((row["CBet F"] ?? "").replacingOccurrences(of: ",", with: "")) {
+                        self.loadedValues[player] = [
                             "hands" : hands,
                             "countVPIP" : countVPIP,
                             "countPFR" : countPFR
+                        ]
+                        self.loadedStats[player] = [
+                            "threeBet" : threeBet,
+                            "cBet" : cBet
                         ]
                     }
                 }
@@ -107,10 +112,12 @@ class GameConnection: NSObject {
                     self.players = state.first?.players?.map({$0.value}) ?? []
                     self.allPlayers = self.players
                     for player in self.players {
-                        if let previousStats = self.loadedStats[player.name ?? ""] {
-                            player.statsHandsSeen = (previousStats["hands"] ?? 0)
-                            player.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
-                            player.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
+                        if let previousLoadedValues = self.loadedValues[player.name?.lowercased() ?? ""], let previousStats = self.loadedStats[player.name?.lowercased() ?? ""] {
+                            player.statsHandsSeen = (previousLoadedValues["hands"] ?? 0)
+                            player.statsHandsPlayed = (previousLoadedValues["countVPIP"] ?? 0)
+                            player.statsHandsPFRaised = (previousLoadedValues["countPFR"] ?? 0)
+                            player.statsThreeBet = (previousStats["threeBet"] ?? 0.0)
+                            player.statsCBet = (previousStats["cBet"] ?? 0.0)
                             print("\tfound previous stats on player: \(player.name ?? "error") @ \(player.id ?? "unknown") \(player.playerType)")
                         }
                     }
@@ -256,13 +263,15 @@ class GameConnection: NSObject {
 
     func addPlayerId(playerId: String, player: Player) {
         if !self.players.map({$0.id}).contains(playerId) {
-            if let playerName = player.name {
+            if let playerName = player.name?.lowercased() {
                 print("**** ADDING PLAYER: \(playerName) @ \(playerId)  STATUS: \(player.status?.rawValue ?? "unknown")")
                 player.id = playerId
-                if let previousStats = self.loadedStats[playerName] {
-                    player.statsHandsSeen = (previousStats["hands"] ?? 0)
-                    player.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
-                    player.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
+                if let previousLoadedValues = self.loadedValues[playerName], let previousStats = self.loadedStats[playerName] {
+                    player.statsHandsSeen = (previousLoadedValues["hands"] ?? 0)
+                    player.statsHandsPlayed = (previousLoadedValues["countVPIP"] ?? 0)
+                    player.statsHandsPFRaised = (previousLoadedValues["countPFR"] ?? 0)
+                    player.statsThreeBet = (previousStats["threeBet"] ?? 0.0)
+                    player.statsCBet = (previousStats["cBet"] ?? 0.0)
                     print("\tfound previous stats on player: \(playerName)@\(playerId)\(player.playerType)")
                 }
                 self.players.append(player)
@@ -270,12 +279,14 @@ class GameConnection: NSObject {
                     self.allPlayers.append(player)
                 }
             } else if self.allPlayers.map({$0.id}).contains(playerId) {
-                if let previousPlayer = self.allPlayers.first(where: {$0.id == playerId}), let playerName = previousPlayer.name {
+                if let previousPlayer = self.allPlayers.first(where: {$0.id == playerId}), let playerName = previousPlayer.name?.lowercased() {
                     print("**** ADDING PREVIOUS PLAYER: \(playerName) @ \(playerId)  STATUS: \(previousPlayer.status?.rawValue ?? "unknown")")
-                    if let previousStats = self.loadedStats[playerName] {
-                        previousPlayer.statsHandsSeen = (previousStats["hands"] ?? 0)
-                        previousPlayer.statsHandsPlayed = (previousStats["countVPIP"] ?? 0)
-                        previousPlayer.statsHandsPFRaised = (previousStats["countPFR"] ?? 0)
+                    if let previousLoadedValues = self.loadedValues[playerName], let previousStats = self.loadedStats[playerName] {
+                        previousPlayer.statsHandsSeen = (previousLoadedValues["hands"] ?? 0)
+                        previousPlayer.statsHandsPlayed = (previousLoadedValues["countVPIP"] ?? 0)
+                        previousPlayer.statsHandsPFRaised = (previousLoadedValues["countPFR"] ?? 0)
+                        player.statsThreeBet = (previousStats["threeBet"] ?? 0.0)
+                        player.statsCBet = (previousStats["cBet"] ?? 0.0)
                         print("\tfound previous stats on player: \(playerName)@\(playerId)\(previousPlayer.playerType)")
                     }
                     self.players.append(previousPlayer)
@@ -288,11 +299,13 @@ class GameConnection: NSObject {
     
     func renderTextTable() {
         var namePadding = 35
-        let headersString = String(format:"%@ %@ %@ %@ %@ %@ %@ %@ %@",
+        let headersString = String(format:"%@ %@ %@ %@ %@ %@ %@ %@ %@ %@ %@",
         "Name".padding(toLength: namePadding, withPad: " ", startingAt: 0),
         "VPIP %".padding(toLength: 8, withPad: " ", startingAt: 0),
         "PFR %".padding(toLength: 8, withPad: " ", startingAt: 0),
         "PFR/VPIP %".padding(toLength: 8, withPad: " ", startingAt: 0),
+        "3Bet PF %".padding(toLength: 8, withPad: " ", startingAt: 0),
+        "CBet F %".padding(toLength: 8, withPad: " ", startingAt: 0),
         "Hands".padding(toLength: 8, withPad: " ", startingAt: 0),
         "S VPIP %".padding(toLength: 9, withPad: " ", startingAt: 0),
         "S PFR %".padding(toLength: 9, withPad: " ", startingAt: 0),
@@ -318,12 +331,14 @@ class GameConnection: NSObject {
                 }
             }
             
-            print(String(format:"%@ %@ %@ %@ %@ %@ %@ %@ %@",
+            print(String(format:"%@ %@ %@ %@ %@ %@ %@ %@ %@ %@ %@",
                          "\(nameAndType)".padding(toLength: namePadding, withPad: " ", startingAt: 0),
                          "\(player.totalVPIP)".padding(toLength: 8, withPad: " ", startingAt: 0),
                          "\(player.totalPFR)".padding(toLength: 8, withPad: " ", startingAt: 0),
                          "\(player.totalVPIPPFR)".padding(toLength: 8, withPad: " ", startingAt: 0),
-                         "\(player.handsSeen + player.statsHandsSeen)".padding(toLength: 8, withPad: " ", startingAt: 0),
+                         "\(player.statsThreeBet)".padding(toLength: 8, withPad: " ", startingAt: 0),
+                         "\(player.statsCBet)".padding(toLength: 8, withPad: " ", startingAt: 0),
+                         "\(player.handsSeen + Int(player.statsHandsSeen))".padding(toLength: 8, withPad: " ", startingAt: 0),
                          "\(player.vpip)".padding(toLength: 9, withPad: " ", startingAt: 0),
                          "\(player.pfr)".padding(toLength: 9, withPad: " ", startingAt: 0),
                          "\(player.vpipPFR)".padding(toLength: 11, withPad: " ", startingAt: 0),

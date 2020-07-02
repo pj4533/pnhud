@@ -25,6 +25,9 @@ class Player: NSObject, Codable {
     var statsHandsPlayed: Int = 0
     var statsHandsPFRaised: Int = 0
     
+    var statsThreeBet: Double = 0.0
+    var statsCBet: Double = 0.0
+    
     var handsSeen: Int = 0
     var handsPlayed: Int = 0
     var handsPFRaised: Int = 0
