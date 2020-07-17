@@ -1,3 +1,5 @@
+# DEPRECATED: FOR A HUD USE [THIS](https://github.com/pj4533/PokerNowGrabber)
+
 # pnhud [![Donate](https://img.shields.io/badge/donate-bitcoin-blue.svg)](https://blockchair.com/bitcoin/address/1CDF8xDX33tdkEyUcHL22DBTDEmq4ukMPp) [![Donate](https://img.shields.io/badge/donate-ethereum-blue.svg)](https://blockchair.com/ethereum/address/0xde6458b369ebadba2b515ca0dd4a4d978ad2f93a) 
 
 Terminal based heads up display for PokerNow tables
